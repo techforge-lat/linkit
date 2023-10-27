@@ -13,13 +13,13 @@ func init() {
 
 type dependencyMetadata struct {
 	value     any
-	dependsOn []string
+	dependsOn map[string]string
 }
 
 var container map[string]dependencyMetadata
 
 // Set sets a dependency with a name and defines its dependencies
-func Set[T any](name string, value T, dependsOn []string) {
+func Set[T any](name string, value T, dependsOn map[string]string) {
 	if container == nil {
 		container = make(map[string]dependencyMetadata)
 	}
