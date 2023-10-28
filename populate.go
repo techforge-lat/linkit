@@ -5,8 +5,8 @@ import (
 	"reflect"
 )
 
-// Populate populates auxiliar dependencies of every dependency in the container
-func Populate() error {
+// SetAuxiliarDependencies populates auxiliar dependencies of every dependency in the container
+func SetAuxiliarDependencies() error {
 	if err := populate(container); err != nil {
 		return err
 	}

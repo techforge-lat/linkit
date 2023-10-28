@@ -9,16 +9,18 @@ import (
 
 func main() {
 	foo := &Foo{}
-	dependor.Set[*Foo]("foo", foo, map[string]string{
-		"Bar": "bar_storage",
+	dependor.Set[*Foo](foo, map[string]string{
+		"Bar": dependor.Name(Bar{}),
 	})
 
 	bar := Bar{}
-	dependor.Set[Bar]("bar_storage", bar, make(map[string]string, 0))
+	dependor.Set[Bar](bar, make(map[string]string, 0))
 
-	if err := dependor.Populate(); err != nil {
+	if err := dependor.SetAuxiliarDependencies(); err != nil {
 		log.Fatal(err)
 	}
+
+	fmt.Println(dependor.Name(Foo{}))
 
 	fmt.Println(foo.execute())
 }

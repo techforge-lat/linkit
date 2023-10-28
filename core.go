@@ -2,6 +2,7 @@ package dependor
 
 import (
 	"errors"
+	"reflect"
 )
 
 var ErrNotFound = errors.New("dependor: dependency not found")
@@ -23,9 +24,14 @@ type dependencyContainer map[string]metadata
 // container is used to store all dependencies globally
 var container dependencyContainer
 
-// Set sets a dependency with a name and defines its dependencies
-func Set[T any](name string, value T, dependsOn map[string]string) {
+// SetWithName sets a dependency with a name and defines its dependencies
+func SetWithName[T any](name string, value T, dependsOn map[string]string) {
 	set[T](container, name, value, dependsOn)
+}
+
+// Set sets a dependency with the value type path as a name and defines its dependencies
+func Set[T any](value T, dependsOn map[string]string) {
+	set[T](container, Name(value), value, dependsOn)
 }
 
 // set exists to be tested easily by receiving the dependency container
@@ -40,10 +46,16 @@ func set[T any](depContainer dependencyContainer, name string, value T, dependsO
 	}
 }
 
-// Get gets the dependency omitting any error
-func Get[T any](name string) T {
+// GetWithName gets a dependency with a given name omitting any error
+func GetWithName[T any](name string) T {
 	value, _ := GetWithErr[T](name)
 	return value
+}
+
+// Get gets a dependency using the type path as the name omitting any error
+func Get[T any]() T {
+	var value T
+	return GetWithName[T](Name(value))
 }
 
 // GetWithErr gets a dependency and a posible error
@@ -65,4 +77,14 @@ func getWithErr[T any](container dependencyContainer, name string) (T, error) {
 	}
 
 	return value, nil
+}
+
+// Name gets a dependency name by using its type path
+func Name(v any) string {
+	value := reflect.ValueOf(v)
+	if isPointer(value) {
+		value = value.Elem()
+	}
+
+	return value.Type().String()
 }
