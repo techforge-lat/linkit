@@ -16,15 +16,20 @@ func SetAuxiliarDependencies() error {
 
 // populate exists to be tested easily by receiving the dependency container
 func populate(container dependencyContainer) error {
-	for _, v := range container {
+	for parentDependency, v := range container {
 		for fieldName, dependencyName := range v.dependsOn {
 			structValue := reflect.ValueOf(v.value)
 			if !isPointer(structValue) {
-				return fmt.Errorf("dependor.Populate(): cound not assign dependencies to struct %s, you must pass a struct pointer", structValue.String())
+				return fmt.Errorf("dependor.Populate(): cound not assign auxiliary dependencies to %s of type %s, you must pass a struct pointer", structValue.Type().Name(), structValue.Kind())
 			}
 			structValue = structValue.Elem()
 
-			if err := setAuxDependency(structValue, fieldName, container[dependencyName].value); err != nil {
+			auxDependency, ok := container[dependencyName]
+			if !ok {
+				return fmt.Errorf("dependor.Populate(): missing auxiliary dependency with name %s for %s", dependencyName, parentDependency)
+			}
+
+			if err := setAuxDependency(structValue, fieldName, parentDependency, dependencyName, auxDependency.value); err != nil {
 				return fmt.Errorf("dependor.Populate(): %v", err)
 			}
 		}
@@ -34,13 +39,18 @@ func populate(container dependencyContainer) error {
 }
 
 // setAuxDependency sets an auxiliary dependency to a struct's field
-func setAuxDependency(structValue reflect.Value, fieldName string, dependency any) error {
+func setAuxDependency(structValue reflect.Value, fieldName, parentDependency, dependencyName string, dependency any) error {
 	field, err := getFieldByName(fieldName, structValue)
 	if err != nil {
 		return fmt.Errorf("setAuxDependency(): %v", err)
 	}
 
-	field.Set(reflect.ValueOf(dependency))
+	dependecyValue := reflect.ValueOf(dependency)
+	if !dependecyValue.Type().Implements(field.Type()) {
+		return fmt.Errorf("setAuxDependency(): cannot set auxiliary dependency with name %s to field %s of struct %s", dependencyName, fieldName, parentDependency)
+	}
+
+	field.Set(dependecyValue)
 
 	return nil
 }
