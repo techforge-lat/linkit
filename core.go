@@ -8,23 +8,33 @@ var ErrNotFound = errors.New("dependor: dependency not found")
 var ErrInvalidType = errors.New("dependor: invalid dependency type")
 
 func init() {
-	container = make(map[string]dependencyMetadata)
+	container = make(map[string]metadata)
 }
 
-type dependencyMetadata struct {
+// metadata stores the dependency value and the dependencies it has
+type metadata struct {
 	value     any
 	dependsOn map[string]string
 }
 
-var container map[string]dependencyMetadata
+// dependencyContainer is the container type to store all dependencies
+type dependencyContainer map[string]metadata
+
+// container is used to store all dependencies globally
+var container dependencyContainer
 
 // Set sets a dependency with a name and defines its dependencies
 func Set[T any](name string, value T, dependsOn map[string]string) {
-	if container == nil {
-		container = make(map[string]dependencyMetadata)
+	set[T](container, name, value, dependsOn)
+}
+
+// set exists to be tested easily by receiving the dependency container
+func set[T any](depContainer dependencyContainer, name string, value T, dependsOn map[string]string) {
+	if depContainer == nil {
+		depContainer = make(dependencyContainer)
 	}
 
-	container[name] = dependencyMetadata{
+	depContainer[name] = metadata{
 		value:     value,
 		dependsOn: dependsOn,
 	}
@@ -38,6 +48,11 @@ func Get[T any](name string) T {
 
 // GetWithErr gets a dependency and a posible error
 func GetWithErr[T any](name string) (T, error) {
+	return getWithErr[T](container, name)
+}
+
+// getWithErr exists to be tested easily by receiving the dependency container
+func getWithErr[T any](container dependencyContainer, name string) (T, error) {
 	var value T
 	dependency, ok := container[name]
 	if !ok {

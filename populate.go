@@ -7,10 +7,19 @@ import (
 
 // Populate populates auxiliar dependencies of every dependency in the container
 func Populate() error {
+	if err := populate(container); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// populate exists to be tested easily by receiving the dependency container
+func populate(container dependencyContainer) error {
 	for _, v := range container {
 		for fieldName, dependencyName := range v.dependsOn {
 			structValue := reflect.ValueOf(v.value)
-			if !isPointer(structValue.Kind()) {
+			if !isPointer(structValue) {
 				return fmt.Errorf("dependor.Populate(): cound not assign dependencies to struct %s, you must pass a struct pointer", structValue.String())
 			}
 			structValue = structValue.Elem()
@@ -24,6 +33,7 @@ func Populate() error {
 	return nil
 }
 
+// setAuxDependency sets an auxiliary dependency to a struct's field
 func setAuxDependency(structValue reflect.Value, fieldName string, dependency any) error {
 	field, err := getFieldByName(fieldName, structValue)
 	if err != nil {
@@ -35,6 +45,7 @@ func setAuxDependency(structValue reflect.Value, fieldName string, dependency an
 	return nil
 }
 
+// getFieldByName gets a struct's field by providing it's name
 func getFieldByName(fieldName string, structValue reflect.Value) (reflect.Value, error) {
 	fieldByName, _ := structValue.Type().FieldByName(fieldName)
 	if len(fieldByName.Index) == 0 {
@@ -44,6 +55,7 @@ func getFieldByName(fieldName string, structValue reflect.Value) (reflect.Value,
 	return structValue.Field(fieldByName.Index[0]), nil
 }
 
-func isPointer(k reflect.Kind) bool {
-	return k == reflect.Pointer
+// isPointer validates if value is a pointer
+func isPointer(value reflect.Value) bool {
+	return value.Kind() == reflect.Pointer
 }
