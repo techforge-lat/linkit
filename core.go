@@ -12,6 +12,7 @@ var ErrInvalidType = errors.New("dependor: invalid dependency type")
 var once *sync.Once
 
 func init() {
+	once = &sync.Once{}
 	setup(container)
 }
 
@@ -47,6 +48,7 @@ func Set[T any](value T, dependsOn map[string]string) {
 // set exists to be tested easily by receiving the dependency container
 func set[T any](depContainer dependencyContainer, name string, value T, dependsOn map[string]string) {
 	if depContainer == nil {
+		once = &sync.Once{}
 		setup(depContainer)
 	}
 
