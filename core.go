@@ -3,13 +3,23 @@ package dependor
 import (
 	"errors"
 	"reflect"
+	"sync"
 )
 
 var ErrNotFound = errors.New("dependor: dependency not found")
 var ErrInvalidType = errors.New("dependor: invalid dependency type")
 
+var once *sync.Once
+
 func init() {
-	container = make(map[string]metadata)
+	setup(container)
+}
+
+// setup initialize a dependency container once
+func setup(c dependencyContainer) {
+	once.Do(func() {
+		c = make(map[string]metadata)
+	})
 }
 
 // metadata stores the dependency value and the dependencies it has
@@ -37,7 +47,7 @@ func Set[T any](value T, dependsOn map[string]string) {
 // set exists to be tested easily by receiving the dependency container
 func set[T any](depContainer dependencyContainer, name string, value T, dependsOn map[string]string) {
 	if depContainer == nil {
-		depContainer = make(dependencyContainer)
+		setup(depContainer)
 	}
 
 	depContainer[name] = metadata{

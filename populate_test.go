@@ -14,6 +14,23 @@ type TableRecords []TableRecord
 func TestPopulate(t *testing.T) {
 	tests := TableRecords{
 		getWithOneAuxiliarDep(),
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := populate(tt.container)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("populate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if tt.wantErr && tt.err != err.Error() {
+				t.Errorf("populate() error = %v, wantErr %v", err, tt.err)
+			}
+		})
+	}
+}
+
+func TestPopulate_WithErr(t *testing.T) {
+	tests := TableRecords{
 		getWithPointerErr(),
 		getWithoutStruct(),
 		getWithMissingAuxDependency(),
