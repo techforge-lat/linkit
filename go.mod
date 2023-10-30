@@ -1,3 +1,3 @@
-module github.com/techforge-lat/dependor
+module github.com/techforge-lat/linkit
 
 go 1.21.3

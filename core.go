@@ -1,14 +1,10 @@
-package dependor
+package linkit
 
 import (
-	"errors"
 	"log"
 	"reflect"
 	"sync"
 )
-
-var ErrNotFound = errors.New("dependency not found")
-var ErrInvalidType = errors.New("invalid dependency type")
 
 var once *sync.Once
 
@@ -20,38 +16,45 @@ func init() {
 // setup initialize a dependency container once
 func setup(c *dependencyContainer) {
 	once.Do(func() {
-		*c = make(map[string]Config, 0)
+		*c = make(map[string]options, 0)
 	})
 }
 
 // Set sets a dependency with the value type path as a name and defines its dependencies
-func Set[T any](config Config) {
-	set[T](container, config)
+func Set[T any](opts ...Option) {
+	set[T](container, opts...)
 }
 
 // set exists to be tested easily by receiving the dependency container
-func set[T any](depContainer dependencyContainer, config Config) {
+func set[T any](depContainer dependencyContainer, opts ...Option) {
+	var config options
+	for _, opt := range opts {
+		if err := opt(&config); err != nil {
+			log.Fatalf("linkit.set(): %v\n", err)
+		}
+	}
+
 	if depContainer == nil {
 		once = &sync.Once{}
 		setup(&depContainer)
 	}
 
-	if config.Value == nil {
-		config.Value = createValueFromType[T]()
+	if config.value == nil {
+		config.value = createValueFromType[T]()
 	}
 
-	if config.DependencyName == "" {
-		config.DependencyName = Name(config.Value)
+	if config.dependencyName == "" {
+		config.dependencyName = Name(config.value)
 	}
 
-	depContainer[config.DependencyName] = config
+	depContainer[config.dependencyName] = config
 }
 
 // GetWithName gets a dependency with a given name omitting any error
 func GetWithName[T any](name string) T {
 	value, err := GetWithErr[T](name)
 	if err != nil {
-		log.Fatalf("dependor: %v, dependencyName: %s", err, name)
+		log.Fatalf("linkit: %v, dependencyName: %s", err, name)
 	}
 
 	return value
@@ -62,7 +65,7 @@ func Get[T any]() T {
 	return GetWithName[T](Name(createValueFromType[T]()))
 }
 
-// GetWithErr gets a dependency and a posible error
+// GetWithErr gets a dependency and a possible error
 func GetWithErr[T any](name string) (T, error) {
 	return getWithErr[T](container, name)
 }
@@ -75,7 +78,7 @@ func getWithErr[T any](container dependencyContainer, name string) (T, error) {
 		return value, ErrNotFound
 	}
 
-	value, ok = dependency.Value.(T)
+	value, ok = dependency.value.(T)
 	if !ok {
 		return value, ErrInvalidType
 	}
