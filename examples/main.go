@@ -4,25 +4,25 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/techforge-lat/dependor"
+	"github.com/techforge-lat/linkit"
 )
 
 func main() {
 	foo := &Foo{}
-	dependor.Set[*Foo](dependor.Config{
-		Value: foo,
-		AuxiliaryDependencies: map[string]string{
-			"Bar": dependor.Name(Bar{}),
-		},
-	})
+	linkit.Set[*Foo](
+		linkit.WithValue(foo),
+		linkit.WithAuxiliaryDependencies(map[string]string{
+			"Bar": linkit.Name(Bar{}),
+		}),
+	)
 
-	dependor.Set[*Bar](dependor.Config{})
+	linkit.Set[*Bar]()
 
-	if err := dependor.SetAuxiliarDependencies(); err != nil {
+	if err := linkit.SetAuxiliaryDependencies(); err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println(dependor.Name(Foo{}))
+	fmt.Println(linkit.Name(Foo{}))
 	fmt.Println(foo.execute())
 }
 
