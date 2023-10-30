@@ -2,72 +2,64 @@ package dependor
 
 import (
 	"errors"
+	"log"
 	"reflect"
 	"sync"
 )
 
-var ErrNotFound = errors.New("dependor: dependency not found")
-var ErrInvalidType = errors.New("dependor: invalid dependency type")
+var ErrNotFound = errors.New("dependency not found")
+var ErrInvalidType = errors.New("invalid dependency type")
 
 var once *sync.Once
 
 func init() {
 	once = &sync.Once{}
-	setup(container)
+	setup(&container)
 }
 
 // setup initialize a dependency container once
-func setup(c dependencyContainer) {
+func setup(c *dependencyContainer) {
 	once.Do(func() {
-		c = make(map[string]metadata)
+		*c = make(map[string]Config, 0)
 	})
 }
 
-// metadata stores the dependency value and the dependencies it has
-type metadata struct {
-	value     any
-	dependsOn map[string]string
-}
-
-// dependencyContainer is the container type to store all dependencies
-type dependencyContainer map[string]metadata
-
-// container is used to store all dependencies globally
-var container dependencyContainer
-
-// SetWithName sets a dependency with a name and defines its dependencies
-func SetWithName[T any](name string, value T, dependsOn map[string]string) {
-	set[T](container, name, value, dependsOn)
-}
-
 // Set sets a dependency with the value type path as a name and defines its dependencies
-func Set[T any](value T, dependsOn map[string]string) {
-	set[T](container, Name(value), value, dependsOn)
+func Set[T any](config Config) {
+	set[T](container, config)
 }
 
 // set exists to be tested easily by receiving the dependency container
-func set[T any](depContainer dependencyContainer, name string, value T, dependsOn map[string]string) {
+func set[T any](depContainer dependencyContainer, config Config) {
 	if depContainer == nil {
 		once = &sync.Once{}
-		setup(depContainer)
+		setup(&depContainer)
 	}
 
-	depContainer[name] = metadata{
-		value:     value,
-		dependsOn: dependsOn,
+	if config.Value == nil {
+		config.Value = createValueFromType[T]()
 	}
+
+	if config.DependencyName == "" {
+		config.DependencyName = Name(config.Value)
+	}
+
+	depContainer[config.DependencyName] = config
 }
 
 // GetWithName gets a dependency with a given name omitting any error
 func GetWithName[T any](name string) T {
-	value, _ := GetWithErr[T](name)
+	value, err := GetWithErr[T](name)
+	if err != nil {
+		log.Fatalf("dependor: %v, dependencyName: %s", err, name)
+	}
+
 	return value
 }
 
 // Get gets a dependency using the type path as the name omitting any error
 func Get[T any]() T {
-	var value T
-	return GetWithName[T](Name(value))
+	return GetWithName[T](Name(createValueFromType[T]()))
 }
 
 // GetWithErr gets a dependency and a posible error
@@ -83,7 +75,7 @@ func getWithErr[T any](container dependencyContainer, name string) (T, error) {
 		return value, ErrNotFound
 	}
 
-	value, ok = dependency.value.(T)
+	value, ok = dependency.Value.(T)
 	if !ok {
 		return value, ErrInvalidType
 	}
@@ -94,9 +86,24 @@ func getWithErr[T any](container dependencyContainer, name string) (T, error) {
 // Name gets a dependency name by using its type path
 func Name(v any) string {
 	value := reflect.ValueOf(v)
+
 	if isPointer(value) {
 		value = value.Elem()
 	}
 
 	return value.Type().String()
+}
+
+func createValueFromType[T any]() T {
+	var value T
+	t := reflect.TypeOf(value)
+
+	if t.Kind() == reflect.Pointer {
+		t = t.Elem()
+	} else {
+		// the populate func will throw an error if a pointer is needed for this value
+		return value
+	}
+
+	return reflect.New(t).Interface().(T)
 }

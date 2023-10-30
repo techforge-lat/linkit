@@ -36,6 +36,7 @@ func TestPopulate_WithErr(t *testing.T) {
 		getWithMissingAuxDependency(),
 		getWithInvalidAuxDependency(),
 		getWithMissingField(),
+		// withNotImplementInterface
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -79,18 +80,19 @@ func (p Permission) GetPermission() string {
 
 func getWithOneAuxiliarDep() TableRecord {
 	var c dependencyContainer = make(dependencyContainer)
-	user := &User{}
-	set[*User](c, Name(User{}), user, map[string]string{
-		"Role": Name(Role{}),
+	set[*User](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Role": Name(Role{}),
+		},
 	})
 
-	role := &Role{}
-	set[*Role](c, Name(Role{}), role, map[string]string{
-		"Permission": Name(Permission{}),
+	set[*Role](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Permission": Name(Permission{}),
+		},
 	})
 
-	permission := &Permission{}
-	set[*Permission](c, Name(Permission{}), permission, map[string]string{})
+	set[*Permission](c, Config{})
 
 	return TableRecord{
 		name:      "one auxiliar dep",
@@ -101,60 +103,67 @@ func getWithOneAuxiliarDep() TableRecord {
 
 func getWithPointerErr() TableRecord {
 	var c dependencyContainer = make(dependencyContainer)
-	user := User{}
-	set[User](c, Name(User{}), user, map[string]string{
-		"Role": Name(Role{}),
+	set[User](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Role": Name(Role{}),
+		},
 	})
 
-	role := &Role{}
-	set[*Role](c, Name(Role{}), role, map[string]string{
-		"Permission": Name(Permission{}),
+	set[*Role](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Permission": Name(Permission{}),
+		},
 	})
 
-	permission := &Permission{}
-	set[*Permission](c, Name(Permission{}), permission, map[string]string{})
+	set[*Permission](c, Config{})
 
 	return TableRecord{
 		name:      "pointer error",
 		container: c,
 		wantErr:   true,
-		err:       "dependor.Populate(): cound not assign auxiliary dependencies to User of type struct, you must pass a struct pointer",
+		err:       "dependor.Populate(): cound not assign auxiliary dependencies to dependor.User of type struct, you must pass a struct pointer",
 	}
 }
 
 func getWithoutStruct() TableRecord {
 	var c dependencyContainer = make(dependencyContainer)
-	user := 0
-	set[int](c, Name(User{}), user, map[string]string{
-		"Role": Name(Role{}),
+	set[int](c, Config{
+		DependencyName: Name(User{}),
+		Value:          0,
+		AuxiliaryDependencies: map[string]string{
+			"Role": Name(Role{}),
+		},
 	})
 
-	role := &Role{}
-	set[*Role](c, Name(Role{}), role, map[string]string{
-		"Permission": Name(Permission{}),
+	set[*Role](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Permission": Name(Permission{}),
+		},
 	})
 
-	permission := &Permission{}
-	set[*Permission](c, Name(Permission{}), permission, map[string]string{})
+	set[*Permission](c, Config{})
 
 	return TableRecord{
 		name:      "pointer error",
 		container: c,
 		wantErr:   true,
-		err:       "dependor.Populate(): cound not assign auxiliary dependencies to int of type int, you must pass a struct pointer",
+		err:       "dependor.Populate(): cound not assign auxiliary dependencies to dependor.User of type int, you must pass a struct pointer",
 	}
 }
 
 func getWithMissingAuxDependency() TableRecord {
 	var c dependencyContainer = make(dependencyContainer)
-	user := &User{}
-	set[*User](c, Name(User{}), user, map[string]string{
-		"Role": Name(Role{}),
+
+	set[*User](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Role": Name(Role{}),
+		},
 	})
 
-	role := &Role{}
-	set[*Role](c, Name(Role{}), role, map[string]string{
-		"Permission": Name(Permission{}),
+	set[*Role](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Permission": Name(Permission{}),
+		},
 	})
 
 	return TableRecord{
@@ -167,17 +176,23 @@ func getWithMissingAuxDependency() TableRecord {
 
 func getWithInvalidAuxDependency() TableRecord {
 	var c dependencyContainer = make(dependencyContainer)
-	user := &User{}
-	set[*User](c, Name(User{}), user, map[string]string{
-		"Role": Name(Role{}),
+
+	set[*User](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Role": Name(Role{}),
+		},
 	})
 
-	role := &Role{}
-	set[*Role](c, Name(Role{}), role, map[string]string{
-		"Permission": Name(Permission{}),
+	set[*Role](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Permission": Name(Permission{}),
+		},
 	})
 
-	set[int](c, Name(Permission{}), 10, map[string]string{})
+	set[int](c, Config{
+		DependencyName: Name(Permission{}),
+		Value:          10,
+	})
 
 	return TableRecord{
 		name:      "pointer error",
@@ -189,15 +204,19 @@ func getWithInvalidAuxDependency() TableRecord {
 
 func getWithMissingField() TableRecord {
 	var c dependencyContainer = make(dependencyContainer)
-	set[*User](c, Name(User{}), &User{}, map[string]string{
-		"Role": Name(Role{}),
+	set[*User](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"Role": Name(Role{}),
+		},
 	})
 
-	set[*Role](c, Name(Role{}), &Role{}, map[string]string{
-		"MissingField": Name(Permission{}),
+	set[*Role](c, Config{
+		AuxiliaryDependencies: map[string]string{
+			"MissingField": Name(Permission{}),
+		},
 	})
 
-	set[*Permission](c, Name(Permission{}), &Permission{}, map[string]string{})
+	set[*Permission](c, Config{})
 
 	return TableRecord{
 		name:      "pointer error",

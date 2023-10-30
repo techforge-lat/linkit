@@ -17,10 +17,10 @@ func SetAuxiliarDependencies() error {
 // populate exists to be tested easily by receiving the dependency container
 func populate(container dependencyContainer) error {
 	for parentDependency, v := range container {
-		for fieldName, dependencyName := range v.dependsOn {
-			structValue := reflect.ValueOf(v.value)
+		for fieldName, dependencyName := range v.AuxiliaryDependencies {
+			structValue := reflect.ValueOf(v.Value)
 			if !isPointer(structValue) {
-				return fmt.Errorf("dependor.Populate(): cound not assign auxiliary dependencies to %s of type %s, you must pass a struct pointer", structValue.Type().Name(), structValue.Kind())
+				return fmt.Errorf("dependor.Populate(): cound not assign auxiliary dependencies to %s of type %s, you must pass a struct pointer", v.DependencyName, structValue.Kind())
 			}
 			structValue = structValue.Elem()
 
@@ -29,7 +29,7 @@ func populate(container dependencyContainer) error {
 				return fmt.Errorf("dependor.Populate(): missing auxiliary dependency with name %s for %s", dependencyName, parentDependency)
 			}
 
-			if err := setAuxDependency(structValue, fieldName, parentDependency, dependencyName, auxDependency.value); err != nil {
+			if err := setAuxDependency(structValue, fieldName, parentDependency, dependencyName, auxDependency.Value); err != nil {
 				return fmt.Errorf("dependor.Populate(): %v", err)
 			}
 		}
@@ -46,7 +46,7 @@ func setAuxDependency(structValue reflect.Value, fieldName, parentDependency, de
 	}
 
 	dependecyValue := reflect.ValueOf(dependency)
-	if !dependecyValue.Type().Implements(field.Type()) {
+	if field.Type().Kind() == reflect.Interface && !dependecyValue.Type().Implements(field.Type()) {
 		return fmt.Errorf("setAuxDependency(): cannot set auxiliary dependency with name %s to field %s of struct %s", dependencyName, fieldName, parentDependency)
 	}
 
