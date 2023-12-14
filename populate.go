@@ -11,6 +11,10 @@ func SetAuxiliaryDependencies() error {
 		return err
 	}
 
+	if err := validate(container); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -31,6 +35,34 @@ func populate(container dependencyContainer) error {
 
 			if err := setAuxDependency(structValue, fieldName, parentDependency, dependencyName, auxDependency.value); err != nil {
 				return fmt.Errorf("linkit.populate(): %v", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func validate(container dependencyContainer) error {
+	for _, v := range container {
+		parentDep := reflect.ValueOf(v.value)
+		if isPointer(parentDep) {
+			parentDep = parentDep.Elem()
+		}
+
+		if parentDep.Kind() != reflect.Struct {
+			continue
+		}
+
+		for i := 0; i < parentDep.NumField(); i++ {
+			field := parentDep.FieldByIndex([]int{i})
+
+			if field.Kind() != reflect.Interface {
+				continue
+			}
+
+			if field.IsNil() {
+				fieldName := reflect.TypeOf(v.value).Elem().Field(i).Name
+				return fmt.Errorf("linkit.validate(): aux dependency %v is nil in dependency %s", fieldName, v.dependencyName)
 			}
 		}
 	}
