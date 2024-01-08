@@ -79,7 +79,7 @@ func setAuxDependency(structValue reflect.Value, fieldName, parentDependency, de
 
 	dependencyValue := reflect.ValueOf(dependency)
 	if field.Type().Kind() == reflect.Interface && !dependencyValue.Type().Implements(field.Type()) {
-		return fmt.Errorf("setAuxDependency(): cannot set auxiliary dependency with name %s to field %s of struct %s", dependencyName, fieldName, parentDependency)
+		return fmt.Errorf("setAuxDependency(): cannot set auxiliary dependency, interface %s of struct %s is not implemented by %s", fieldName, parentDependency, dependencyName)
 	}
 
 	field.Set(dependencyValue)
