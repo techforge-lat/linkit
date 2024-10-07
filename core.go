@@ -14,20 +14,20 @@ func New() *DependencyContainer {
 	}
 }
 
-func (d *DependencyContainer) Register(name DependencyName, dependency any) {
+func (d *DependencyContainer) Provide(name DependencyName, dependency any) {
 	d.dependencies[name] = dependency
 }
 
-// SetDependencies builds the core with its dependencies
+// ResolveAuxiliaryDependencies builds the core with its dependencies
 // NOTE: must be called after all root dependencies are registered
-func (d *DependencyContainer) SetDependencies() error {
+func (d *DependencyContainer) ResolveAuxiliaryDependencies() error {
 	for name, dependency := range d.dependencies {
 		rootDependency, ok := dependency.(Dependency)
 		if !ok {
 			continue
 		}
 
-		if err := rootDependency.SetDependencies(d); err != nil {
+		if err := rootDependency.ResolveAuxiliaryDependencies(d); err != nil {
 			return fmt.Errorf("%w %s", ErrCouldNotBuildDependency, name)
 		}
 	}
@@ -35,7 +35,7 @@ func (d *DependencyContainer) SetDependencies() error {
 	return nil
 }
 
-func Get[T any](core *DependencyContainer, name DependencyName) (T, error) {
+func Resolve[T any](core *DependencyContainer, name DependencyName) (T, error) {
 	var dependency T
 
 	if core == nil {

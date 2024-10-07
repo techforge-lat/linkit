@@ -13,7 +13,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	userHandler, _ := linkit.Get[user.Handler](dependencyContainer, linkit.DependencyName("user.handler"))
+	userHandler, _ := linkit.Resolve[user.Handler](dependencyContainer, linkit.DependencyName("user.handler"))
 
 	userHandler.Create()
 }

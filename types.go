@@ -1,7 +1,7 @@
 package linkit
 
 type Dependency interface {
-	SetDependencies(*DependencyContainer) error
+	ResolveAuxiliaryDependencies(*DependencyContainer) error
 }
 
 type DependencyName string
