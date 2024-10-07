@@ -29,7 +29,7 @@ func BuildDependencies() (*linkit.DependencyContainer, error) {
 
 	// must be after every other root dependency is added
 	// this will execute every BuildDependencies function of every root dependency
-	if err := container.Build(); err != nil {
+	if err := container.SetDependencies(); err != nil {
 		return nil, err
 	}
 
