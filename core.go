@@ -1,112 +1,58 @@
 package linkit
 
 import (
-	"log"
-	"reflect"
-	"sync"
+	"fmt"
 )
 
-var once *sync.Once
-
-func init() {
-	once = &sync.Once{}
-	setup(&container)
+type DependencyContainer struct {
+	dependencies map[DependencyName]any
 }
 
-// setup initialize a dependency container once
-func setup(c *dependencyContainer) {
-	once.Do(func() {
-		*c = make(map[string]options, 0)
-	})
+func New() *DependencyContainer {
+	return &DependencyContainer{
+		dependencies: make(map[DependencyName]any),
+	}
 }
 
-// Set sets a dependency with the value type path as a name and defines its dependencies
-func Set[T any](opts ...Option) {
-	set[T](container, opts...)
+func (d *DependencyContainer) Register(name DependencyName, dependency any) {
+	d.dependencies[name] = dependency
 }
 
-// set exists to be tested easily by receiving the dependency container
-func set[T any](depContainer dependencyContainer, opts ...Option) {
-	var config options
-	for _, opt := range opts {
-		if err := opt(&config); err != nil {
-			log.Fatalf("linkit.set(): %v\n", err)
+// Build builds the core with its dependencies
+// NOTE: must be called after all root dependencies are registered
+func (d *DependencyContainer) Build() error {
+	for name, dependency := range d.dependencies {
+		rootDependency, ok := dependency.(Dependency)
+		if !ok {
+			continue
+		}
+
+		if err := rootDependency.SetDependencies(d); err != nil {
+			return fmt.Errorf("%w %s", ErrCouldNotBuildDependency, name)
 		}
 	}
 
-	if depContainer == nil {
-		once = &sync.Once{}
-		setup(&depContainer)
-	}
-
-	if config.value == nil {
-		config.value = createValueFromType[T]()
-	}
-
-	if config.dependencyName == "" {
-		config.dependencyName = Name(config.value)
-	}
-
-	depContainer[config.dependencyName] = config
+	return nil
 }
 
-// GetWithName gets a dependency with a given name omitting any error
-func GetWithName[T any](name string) T {
-	value, err := GetWithErr[T](name)
-	if err != nil {
-		log.Fatalf("linkit: %v, dependencyName: %s", err, name)
+func Get[T any](core *DependencyContainer, name DependencyName) (T, error) {
+	var dependency T
+
+	if core == nil {
+		return dependency, ErrDependencyCoreNil
 	}
 
-	return value
-}
-
-// Get gets a dependency using the type path as the name omitting any error
-func Get[T any]() T {
-	return GetWithName[T](Name(createValueFromType[T]()))
-}
-
-// GetWithErr gets a dependency and a possible error
-func GetWithErr[T any](name string) (T, error) {
-	return getWithErr[T](container, name)
-}
-
-// getWithErr exists to be tested easily by receiving the dependency container
-func getWithErr[T any](container dependencyContainer, name string) (T, error) {
-	var value T
-	dependency, ok := container[name]
+	dependencyAbstract, ok := core.dependencies[name]
 	if !ok {
-		return value, ErrNotFound
+		return dependency, fmt.Errorf("%w: %s", ErrNotFound, name)
 	}
 
-	value, ok = dependency.value.(T)
+	rootDependency, ok := dependencyAbstract.(T)
 	if !ok {
-		return value, ErrInvalidType
+		return dependency, fmt.Errorf("%w: %s", ErrInvalidType, name)
 	}
 
-	return value, nil
-}
+	dependency = rootDependency
 
-// Name gets a dependency name by using its type path
-func Name(v any) string {
-	value := reflect.ValueOf(v)
-
-	if isPointer(value) {
-		value = value.Elem()
-	}
-
-	return value.Type().String()
-}
-
-func createValueFromType[T any]() T {
-	var value T
-	t := reflect.TypeOf(value)
-
-	if t.Kind() == reflect.Pointer {
-		t = t.Elem()
-	} else {
-		// the populate func will throw an error if a pointer is needed for this value
-		return value
-	}
-
-	return reflect.New(t).Interface().(T)
+	return dependency, nil
 }
