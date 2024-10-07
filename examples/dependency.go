@@ -13,8 +13,8 @@ func BuildDependencies() (*linkit.DependencyContainer, error) {
 	userUseCase := user.NewUseCase(user.NewPsqlRepository())
 	userHandler := user.NewHandler(userUseCase)
 
-	container.Register(linkit.DependencyName("user.usecase"), userUseCase)
-	container.Register(linkit.DependencyName("user.handler"), userHandler)
+	container.Provide(linkit.DependencyName("user.usecase"), userUseCase)
+	container.Provide(linkit.DependencyName("user.handler"), userHandler)
 
 	// role defined dependencies
 	// see that we can defined it after the user who needs it
@@ -24,12 +24,12 @@ func BuildDependencies() (*linkit.DependencyContainer, error) {
 	// and compared to the user, is not necesary to pass it to the NewUseCase function
 	roleRepository := role.NewPsqlRepository()
 
-	container.Register(linkit.DependencyName("role.usecase"), roleUseCase)
-	container.Register(linkit.DependencyName("role.repository"), roleRepository)
+	container.Provide(linkit.DependencyName("role.usecase"), roleUseCase)
+	container.Provide(linkit.DependencyName("role.repository"), roleRepository)
 
 	// must be after every other root dependency is added
 	// this will execute every BuildDependencies function of every root dependency
-	if err := container.SetDependencies(); err != nil {
+	if err := container.ResolveAuxiliaryDependencies(); err != nil {
 		return nil, err
 	}
 

@@ -17,8 +17,8 @@ func NewUseCase(repository Repository) *UserUseCase {
 	}
 }
 
-func (u UserUseCase) BuildDependencies(container *linkit.DependencyContainer) error {
-	roleUseCase, err := linkit.Get[RoleUseCase](container, linkit.DependencyName("role.usecase"))
+func (u UserUseCase) ResolveAuxiliaryDependencies(container *linkit.DependencyContainer) error {
+	roleUseCase, err := linkit.Resolve[RoleUseCase](container, linkit.DependencyName("role.usecase"))
 	if err != nil {
 		return err
 	}
