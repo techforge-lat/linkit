@@ -18,9 +18,9 @@ func (d *DependencyContainer) Register(name DependencyName, dependency any) {
 	d.dependencies[name] = dependency
 }
 
-// Build builds the core with its dependencies
+// SetDependencies builds the core with its dependencies
 // NOTE: must be called after all root dependencies are registered
-func (d *DependencyContainer) Build() error {
+func (d *DependencyContainer) SetDependencies() error {
 	for name, dependency := range d.dependencies {
 		rootDependency, ok := dependency.(Dependency)
 		if !ok {
