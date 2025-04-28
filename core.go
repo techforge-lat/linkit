@@ -28,7 +28,7 @@ func (d *DependencyContainer) ResolveAuxiliaryDependencies() error {
 		}
 
 		if err := rootDependency.ResolveAuxiliaryDependencies(d); err != nil {
-			return fmt.Errorf("%w %s", ErrCouldNotBuildDependency, name)
+			return fmt.Errorf("%w %s. %s", ErrCouldNotBuildDependency, name, err.Error())
 		}
 	}
 
